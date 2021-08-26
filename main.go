@@ -14,18 +14,6 @@ import (
 
 var lock = sync.RWMutex{}
 
-func printAsBinary(bytes []byte) {
-
-	for i := 0; i < len(bytes); i++ {
-		for j := 0; j < 8; j++ {
-			zeroOrOne := bytes[i] >> (7 - j) & 1
-			fmt.Printf("%c", '0'+zeroOrOne)
-		}
-		fmt.Print(" ")
-	}
-	//fmt.Println()
-}
-
 func main() {
 	lastPing := time.Now()
 	goodIDs := map[uint32]struct{}{}
