@@ -62,47 +62,33 @@ func main() {
 
 	args := os.Args[1:]
 
-	conn, _ := socketcan.DialContext(context.Background(), "can", args[0])
-	recv := socketcan.NewReceiver(conn)
-	data := make([]byte, 16)
+	if len(args) < 1 {
+		fmt.Printf("Usage %s [interface]...\n", os.Args[0])
+		os.Exit(1)
+	}
 
-	go func() {
-		for recv.Receive() {
-			frame := recv.Frame()
-			lock.RLock()
-			if _, ok := goodIDs[frame.ID]; !ok {
+	for _, canInterface := range args {
+		go func(ci string) {
+			conn, _ := socketcan.DialContext(context.Background(), "can", ci)
+			recv := socketcan.NewReceiver(conn)
+			data := make([]byte, 16)
+
+			for recv.Receive() {
+				frame := recv.Frame()
+				lock.RLock()
+				if _, ok := goodIDs[frame.ID]; !ok {
+					lock.RUnlock()
+					continue
+				}
 				lock.RUnlock()
-				continue
+				binary.LittleEndian.PutUint32(data, uint32(frame.ID)<<21)
+				binary.LittleEndian.PutUint32(data[4:], uint32(frame.Length))
+				binary.LittleEndian.PutUint64(data[8:], frame.Data.PackLittleEndian())
+				con.WriteToUDP(data, remoteAddr)
+
 			}
-			lock.RUnlock()
-			binary.LittleEndian.PutUint32(data, uint32(frame.ID)<<21)
-			binary.LittleEndian.PutUint32(data[4:], uint32(frame.Length))
-			binary.LittleEndian.PutUint64(data[8:], frame.Data.PackLittleEndian())
-			con.WriteToUDP(data, remoteAddr)
-
-		}
-	}()
-
-	// TODO: i hacked in can1 and this needs to be better
-	conn2, _ := socketcan.DialContext(context.Background(), "can", "can1")
-	recv2 := socketcan.NewReceiver(conn2)
-
-	go func() {
-		for recv2.Receive() {
-			frame := recv2.Frame()
-			lock.RLock()
-			if _, ok := goodIDs[frame.ID]; !ok {
-				lock.RUnlock()
-				continue
-			}
-			lock.RUnlock()
-			binary.LittleEndian.PutUint32(data, uint32(frame.ID)<<21)
-			binary.LittleEndian.PutUint32(data[4:], uint32(frame.Length))
-			binary.LittleEndian.PutUint64(data[8:], frame.Data.PackLittleEndian())
-			con.WriteToUDP(data, remoteAddr)
-
-		}
-	}()
+		}(canInterface)
+	}
 
 	select {}
 }
