@@ -1,4 +1,4 @@
-module canserver
+module notacanserver
 
 go 1.16
 
