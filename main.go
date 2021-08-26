@@ -17,8 +17,8 @@ var lock = sync.RWMutex{}
 func main() {
 	lastPing := time.Now()
 	goodIDs := map[uint32]struct{}{}
-	// Error handling omitted to keep example simple
-	blah := make([]byte, 1024)
+
+	udpInPacket := make([]byte, 1024)
 	addr := net.UDPAddr{
 		Port: 1338,
 		IP:   net.ParseIP(""),
@@ -29,7 +29,7 @@ func main() {
 		panic(err)
 	}
 	defer con.Close()
-	//con.Read(blah)
+	//con.Read(udpInPacket)
 	go func() {
 		for {
 			if time.Now().After(lastPing.Add(5 * time.Second)) {
@@ -44,13 +44,13 @@ func main() {
 
 	go func() {
 		for {
-			d, addr, _ := con.ReadFromUDP(blah)
+			d, addr, _ := con.ReadFromUDP(udpInPacket)
 			remoteAddr = addr
 			//fmt.Print(d)
 			if d == 4 {
-				fmt.Printf("Received %x containing id %x number %d from %s\n", blah[0:d], blah[2:d], binary.BigEndian.Uint16(blah[2:d]), addr)
+				fmt.Printf("Received %x containing id %x number %d from %s\n", udpInPacket[0:d], udpInPacket[2:d], binary.BigEndian.Uint16(udpInPacket[2:d]), addr)
 				lock.Lock()
-				goodIDs[uint32(binary.BigEndian.Uint16(blah[2:d]))] = struct{}{}
+				goodIDs[uint32(binary.BigEndian.Uint16(udpInPacket[2:d]))] = struct{}{}
 				lock.Unlock()
 			} else if d == 5 {
 				con.WriteToUDP([]byte{00, 00, 192, 00, 240, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00}, remoteAddr)
