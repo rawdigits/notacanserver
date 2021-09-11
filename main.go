@@ -9,12 +9,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/grandcat/zeroconf"
+	_ "github.com/pkg/profile"
+	_ "go.einride.tech/can"
 	"go.einride.tech/can/pkg/socketcan"
 )
 
 var lock = sync.RWMutex{}
 
 func main() {
+	//profile.Start(profile.ProfilePath("."))
 	lastPing := time.Now()
 	goodIDs := map[uint32]struct{}{}
 
@@ -73,7 +77,9 @@ func main() {
 			recv := socketcan.NewReceiver(conn)
 			data := make([]byte, 16)
 
+			//frame := &can.Frame{}
 			for recv.Receive() {
+				//*frame = recv.Frame()
 				frame := recv.Frame()
 				lock.RLock()
 				if _, ok := goodIDs[frame.ID]; !ok {
@@ -88,6 +94,11 @@ func main() {
 
 			}
 		}(canInterface)
+	}
+
+	_, err = zeroconf.Register("Notacanserver", "_panda._udp", "local.", 1338, []string{"txtv=0", "lo=1", "la=2"}, nil)
+	if err != nil {
+		panic(err)
 	}
 
 	select {}
