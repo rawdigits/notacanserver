@@ -96,15 +96,17 @@ func main() {
 		}(canInterface)
 	}
 
-	dnssd, err := zeroconf.Register("Notacanserver", "_panda._udp", "local.", 1338, []string{}, nil)
-	if err != nil {
-		panic(err)
-	}
-
 	go func() {
 		for {
-			dnssd.SetText([]string{})
-			time.Sleep(time.Second * 5)
+			dnssd, err := zeroconf.Register("Notacanserver", "_panda._udp", "local.", 1338, []string{}, nil)
+			if err != nil {
+				panic(err)
+			}
+
+			for i := 0; i < 10; i++ {
+				dnssd.SetText([]string{})
+				time.Sleep(time.Second * 5)
+			}
 		}
 	}()
 
